@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MD-U2000 Series - Error Code Tracking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .search-container {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #dee2e6;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .filter-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .stats span {
+            background: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .results-container {
+            padding: 30px;
+            max-height: calc(100vh - 400px);
+            overflow-y: auto;
+        }
+
+        .error-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .error-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .error-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .error-code {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .error-card.warning .error-code {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .error-card.terminal .error-code {
+            background: #dc3545;
+        }
+
+        .error-card.software .error-code {
+            background: #28a745;
+        }
+
+        .error-name {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .error-type {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .error-type.error {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .error-type.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .error-type.terminal {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .error-type.software {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error-remedy {
+            color: #495057;
+            line-height: 1.6;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .error-remedy ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .error-remedy li {
+            margin-bottom: 5px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .no-results svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .highlight {
+            background: yellow;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .filter-buttons {
+                justify-content: center;
+            }
+
+            .error-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* Scrollbar styling */
+        .results-container::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .results-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .results-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+
+        .results-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 MD-U2000 Series Error Code Tracking</h1>
+            <p>Problems, Causes, and Remedies - Search by Error Code or Description</p>
+        </div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Search by error code (e.g., E003) or description (e.g., scanner error)..."
+                    autofocus
+                >
+            </div>
+
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All Codes</button>
+                <button class="filter-btn" data-filter="error">Errors (E)</button>
+                <button class="filter-btn" data-filter="warning">Warnings (W)</button>
+                <button class="filter-btn" data-filter="terminal">Terminal (T)</button>
+                <button class="filter-btn" data-filter="software">Software (S)</button>
+            </div>
+
+            <div class="stats">
+                <span>Total: <strong id="totalCount">0</strong></span>
+                <span>Showing: <strong id="showingCount">0</strong></span>
+            </div>
+        </div>
+
+        <div class="results-container" id="resultsContainer">
+            <!-- Results will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        // Error code database
+        const errorDatabase = [
+            // Error Messages (E-codes)
+            { code: "E003", name: "Head unit Comm error", type: "error", remedy: "Switch off the power, then reseat the cable between the head unit and controller. Next, restart the device.\n\nIf the problem reoccurs, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nNoise may be affecting the device if there is no problem in the cable and the error occurs in a sporadic manner." },
+            { code: "E004", name: "Scanner error", type: "error", remedy: "A repair is needed if the error occurs every time the laser starts up because the scanner is not functioning properly.\n\nIf the error occurs during marking, check if it occurs at a lower scan speed.\n\nIf reducing the scan speed resolves this error, use a scan speed that does not cause the error." },
+            { code: "E005", name: "Shutter error", type: "error", remedy: "A repair is needed if the error occurs every time the laser starts up because the shutter is not functioning properly.\n\nIf the error is cleared by a restart, the issue may have been temporary.\n\nThere is no problem if the error does not reoccur." },
+            { code: "E006", name: "Head version error", type: "error", remedy: "Failed to retrieve the head version information. Alternatively, a head version incompatible with the controller is connected.\n\nUpdate the head and controller to the latest version." },
+            { code: "E007", name: "Head unit model error", type: "error", remedy: "A repair is needed because it is highly likely that the memory data in the head unit has been lost.\n\nNoise may be affecting the device if this error occurs." },
+            { code: "E008", name: "Controller Version Error", type: "error", remedy: "Upgrade both the head unit and controller versions by following the procedure below.\n\nSelect [Monitoring] - [Version Information] in the ribbon menu, and then run [Version Upgrade]." },
+            { code: "E011", name: "Built-in memory card unrecognizable error", type: "error", remedy: "Please contact our branch office closest to you." },
+            { code: "E012", name: "Head Unit Data Error", type: "error", remedy: "A repair is needed because the memory data in the head unit has been lost.\n\nNoise may be affecting the device if this error occurs." },
+            { code: "E013", name: "Expansion memory-full error", type: "error", remedy: "Disable the [Job pre-expansion] function or reduce the target job range by following the procedure below.\n\nSelect [Settings] - [Controller] - [Expansion Processing] - [Job pre-expansion] in the ribbon menu, and disable the [Job pre-expansion] function." },
+            { code: "E014", name: "Mark memory-full error", type: "error", remedy: "The number of active blocks in the job or the number of matrix cells is too large. Address the issue by dividing the job into multiple jobs.\n\nIf the job contains logo data having a large number of lines, this error can be caused even by a single block.\n\nIn such a case, address the issue by splitting the logo and dividing the job into multiple jobs." },
+            { code: "E015", name: "No Job error", type: "error", remedy: "There is no active job in the controller slot specified.\n\nTransfer the job to the controller by following the procedure below.\n\nSelect [Settings] - [File Operations] in the ribbon menu, and then transfer the job settings to the controller." },
+            { code: "E017", name: "No font file error", type: "error", remedy: "Transfer the required fonts to the controller by following the procedure below.\n\nSelect [Settings] - [Common Data] - [Font] in the ribbon menu, and then register the font to an appropriate font No." },
+            { code: "E020", name: "Expansion memory-full error 2", type: "error", remedy: "Delete the unwanted fonts by following the procedure below.\n\nSelect [Settings] - [Common Data] - [Font] in the ribbon menu, and then delete the unwanted font(s).\n\nIf there are no unwanted fonts, address the issue by reducing the character types in the fonts being used.\n\nReduce the character types by following the procedure below.\n\nSelect [TOOLS] - [Font Architect] in the ribbon menu, and open the font currently being used.\n\nSince the [CJK Unified Ideographs] group contains all of the SJIS Kanji characters, you can delete Kanji characters that are not used.\n\nOnce the font has been modified, transfer it to the controller from [Settings] - [File Operations] - [Font] in the ribbon menu." },
+            { code: "E022", name: "Over-Area Error", type: "error", remedy: "Check the work position or the setting of XY tracking or Z tracking when the error is due to the correction result of XY tracking or Z tracking.\n\nIf the tracking function is not enabled, check the following.\n\nCheck and modify the job so that the marking data does not extend beyond the marking area.\n\nIf there is no problem with the job, the marking may have gone beyond the marking area due to the position correction and mounting position adjustment.\n\nCheck and modify the position correction and mounting position adjustment values by following the procedure below.\n\n• Select [Settings] - [Controller] - [Basic Setting] - [Focal Distance and Position Correction] in the ribbon menu, and enter an adequate value for each coordinate.\n\n• Select [Settings] - [Job Settings] - [Mounting Position Adjustment] - [Correct the Horizontal Plane] in the ribbon menu, and then enter an adequate value in [Correction amount]." },
+            { code: "E023", name: "Scanner Over-Area Error", type: "error", remedy: "If an error occurs during moving marking, reduce the line speed or increase the scan speed.\n\nIf the 'Marking Range Spec.' is set for moving marking, increase the marking range.\n\nIf the error occurs during workflow operation, check that the 'Pre-marking Capture', 'XY tracking', 'Z tracking', and 'Post-marking Capture' are correct." },
+            { code: "E024", name: "File verification error", type: "error", remedy: "Prepare the version upgrade data again and run the version upgrade." },
+            { code: "E025", name: "Logo file error", type: "error", remedy: "Transfer the required data to the controller by following the procedure below.\n\nSelect [Settings] - [File Operations] in the ribbon menu, and then transfer the required data to the controller." },
+            { code: "E026", name: "Custom character file error", type: "error", remedy: "Transfer the required custom character data to the controller by following the procedure below.\n\nSelect [Settings] - [File Operations] in the ribbon menu, and then transfer the required custom character data to the controller." },
+            { code: "E027", name: "Encoding Disabled Error", type: "error", remedy: "Check the job barcode and 2D code encoding character settings by following the procedure below.\n\n• Check if the number of character digits is adequate for the set symbol size.\n\n• Check if there are any strings that cannot be input." },
+            { code: "E028", name: "Switching Job Unexecutable Error", type: "error", remedy: "Wait until the job is saved." },
+            { code: "E029", name: "Scanner error 2", type: "error", remedy: "A repair is needed if the error occurs every time the laser starts up or every time the laser marks because the scanner is not functioning properly.\n\nNoise may be affecting the device if it occurs randomly." },
+            { code: "E030", name: "Expiration setting error", type: "error", remedy: "Modify the expiration setting so that the marking data after expiration will be between the year 1900 and 2100." },
+            { code: "E031", name: "Restart error", type: "error", remedy: "If AC power to the laser was turned off and on intentionally without using the key switch, the error will clear with an error reset.\n\nIf this was not intentional, install a UPS because it is highly likely that a momentary power loss has occurred." },
+            { code: "E032", name: "Logo/custom character enlargement error", type: "error", remedy: "Reduce the size of the block containing the logo or custom character." },
+            { code: "E033", name: "Skip cross error", type: "error", remedy: "Reduce the skip cross setting or increase the character size." },
+            { code: "E034", name: "Encoding Disabled Error", type: "error", remedy: "Check the job barcode and 2D code encoding character settings.\n\n• Check if the number of character digits is adequate for the set symbol size.\n\n• Check if there are any strings that cannot be input." },
+            { code: "E035", name: "Quick change of character expansion error", type: "error", remedy: "Register the character type(s) you wish to change as high speed edit characters.\n\nYou can register a character for high speed editing using the [Register Character for High Speed Editing (IR)] command." },
+            { code: "E038", name: "Logo custom character buffer full error", type: "error", remedy: "Disable the [Job pre-expansion] function or reduce the target job range by following the procedure below.\n\nSelect [Settings] - [Controller] - [Expansion Processing] - [Job pre-expansion] in the ribbon menu, and then correct the [Job pre-expansion] function." },
+            { code: "E039", name: "Wobble/Scratch incorrect setting error", type: "error", remedy: "Set the scan speed to 3000mm/s or lower in the marking parameters." },
+            { code: "E040", name: "Link block error", type: "error", remedy: "Check that the link destination block is set to [Mark]." },
+            { code: "E041", name: "3D marking position incorrect range error", type: "error", remedy: "Change the block position on the 3D shape in the block layout to an adequate value." },
+            { code: "E042", name: "Marking loss detection error", type: "error", remedy: "Check the settings and wiring of the sensor connected to the marking confirmation input." },
+            { code: "E043", name: "Accidental emission detection error", type: "error", remedy: "" },
+            { code: "E044", name: "Z Area over error", type: "error", remedy: "Take adequate measures to suppress the target position fluctuation in the Z coordinate direction." },
+            { code: "E045", name: "Unregistered barcode error", type: "error", remedy: "Register the barcode to be used in advance by following the procedure below.\n\nSelect [Settings] - [Controller] - [Option] - [Barcode verification] in the ribbon menu, and perform [Register code]." },
+            { code: "E046", name: "Warm up setting error", type: "error", remedy: "Transfer the warm up job to No. 1999.\n\nMake sure that the warm up job does not contain the following functions:\n\n'Counter, Moving Marking, 2D Code Reader, Auto Focus, Marking Confirmation, Matrix, Group, Fixed Point While Trigger is on, Pre/Post Marking Capturing, Pre/Post Marking Lens Inspection, XY Tracking, Z Tracking'" },
+            { code: "E047", name: "3D Error of size of block", type: "error", remedy: "Review the 3D block parameters." },
+            { code: "E048", name: "Z-MAP file error", type: "error", remedy: "Transfer the required Z-MAP data to the controller by following the procedure below.\n\nSelect [Settings] - [File Operations] - [Z-MAP] in the ribbon menu, and then transfer the required Z-MAP data to the controller." },
+            { code: "E049", name: "No font error", type: "error", remedy: "Since a custom character without marking lines cannot be used, check the fonts and custom characters and delete any data that does not contain marking lines.\n\nIf the error occurs even if the marking lines are present, the data may be corrupted.\n\nIf this is the case, create the font/custom character data again from scratch." },
+            { code: "E050", name: "Marking data generation error", type: "error", remedy: "Set an adequate trigger delay by following the procedure below.\n\nSelect [Settings] - [Job Settings] - [Stationary Marking/Moving Marking] in the ribbon menu, and then enter an adequate value in [Trigger Delay]." },
+            { code: "E051", name: "System Error 2", type: "error", remedy: "Please check the following:\n\n• Transfer the job again if a DataMatrix is included.\n\n• If the Wobble setting is included, transfer the job again after setting the overlap rate to a lower value." },
+            { code: "E052", name: "System Error 3", type: "error", remedy: "A repair is needed if the problem persists after a restart.\n\nNoise may be affecting the device if this error occurs." },
+            { code: "E053", name: "System Error 4", type: "error", remedy: "Internal data may be corrupted if the problem persists even after a restart.\n\nRestore the data using the backup data from before the problem occurred, or transfer all data again." },
+            { code: "E054", name: "System Error 5", type: "error", remedy: "If the error persists after a restart, there may be a problem in the processing of external communications.\n\nCheck if external communications from multiple devices are active or if there is any mistake in the communication command.\n\nNoise may be affecting the device if the error occurs in a sporadic manner." },
+            { code: "E055", name: "System Error 6", type: "error", remedy: "Internal data may be corrupted if the problem persists even after a restart.\n\nRestore the data using the backup data from before the problem occurred, or transfer all data again." },
+            { code: "E056", name: "System Error 7", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E057", name: "System Error 8", type: "error", remedy: "Restart the device and take the necessary measures.\n\nIf the problem occurs in a specific job, transfer the job to the controller again." },
+            { code: "E058", name: "System Error 9", type: "error", remedy: "Restart the device and take the necessary measures.\n\nIf this error occurs during a specific job, the problem may be due multiple line settings of a block.\n\nIf a multiple line setting exists, switch to single line setting and check if the error persists." },
+            { code: "E059", name: "System Error 10", type: "error", remedy: "Internal data may be corrupted if the problem persists even after a restart.\n\nTransfer the job from the PC to the controller again." },
+            { code: "E061", name: "System Error 12", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E062", name: "System Error 13", type: "error", remedy: "Internal data may be corrupted if the problem persists even after a restart.\n\nRestore the data using the backup data from before the problem occurred, or transfer all data again." },
+            { code: "E063", name: "System Error 14", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, and then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nA repair is needed if there is no problem with the cable." },
+            { code: "E066", name: "System Error 17", type: "error", remedy: "Internal data may be corrupted if the problem persists even after a restart.\n\nRestore the data using the backup data from before the problem occurred, or transfer all data again." },
+            { code: "E067", name: "System Error 18", type: "error", remedy: "A repair is needed if the problem persists after a restart.\n\nThis error can occur when there is miswiring in the terminal block.\n\nCheck if the same error occurs even after disconnecting all terminal blocks." },
+            { code: "E068", name: "System Error 19", type: "error", remedy: "A repair is needed if the problem persists after a restart.\n\nThis error can occur when there is miswiring in the terminal block.\n\nCheck if the same error occurs even after disconnecting all terminal blocks." },
+            { code: "E069", name: "System Error 20", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E070", name: "System Error 21", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E071", name: "System Error 22", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E072", name: "System Error 23", type: "error", remedy: "Please contact our branch office closest to you." },
+            { code: "E073", name: "System Error 24", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E074", name: "System Error 25", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E075", name: "System Error 26", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E090", name: "Internal clock incorrect setting error", type: "error", remedy: "Set the internal clock again.\n\nIf the problem persists after a restart, a repair is needed because the built-in battery is out of power." },
+            { code: "E091", name: "Internal clock access error", type: "error", remedy: "Set the internal clock again.\n\nIf the problem persists after a restart, the controller needs to be repaired because the built-in battery is out of power." },
+            { code: "E092", name: "Internal memory access error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E100", name: "LD high-temperature error", type: "error", remedy: "Check if the controller filter is dirty or clogged.\n\nIf no problem is found with the filter, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E101", name: "LD low-temperature error", type: "error", remedy: "Please check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E102", name: "Head unit High Temperature Error", type: "error", remedy: "Please check whether the ambient temperature is within the specification range.\n\nCheck if the controller filter is dirty or clogged, if no problem is found with the filter, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E104", name: "Qsw stop error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E105", name: "Q switch power error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E106", name: "Qsw control error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E107", name: "Qsw run check error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E110", name: "Laser power auto calibration error", type: "error", remedy: "If there is a problem with the marking quality, make adjustments by increasing the laser output.\n\nIf output is set to 100%, and marking quality issues continue even with the part in focus, a repair is needed." },
+            { code: "E111", name: "Z Coordinate Correction Amount Upper Limit Error", type: "error", remedy: "If this was not intended, change the upper range limit by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then enter an adequate upper limit value in [Measuring Range Settings]." },
+            { code: "E112", name: "Z Coordinate Correction Amount Lower Limit Error", type: "error", remedy: "If this was not intended, change the lower range limit by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then enter an adequate lower limit value in [Measuring Range Settings]." },
+            { code: "E113", name: "Z coordinate correction measurement failure error", type: "error", remedy: "Z axis measurement may not be possible in the following cases:\n\n• Distance measuring light cannot be detected correctly because of the surface condition of the target.\n\nIn this case, use the tracking confirmation function of Marking Builder Plus to check if the stability is low.\n\nOtherwise, perform automatic adjustment of the Z tracking setting, and check that measurement is performed with highly reliable coordinates." },
+            { code: "E114", name: "Current Job Error", type: "error", remedy: "Transfer the currently running job again." },
+            { code: "E115", name: "Position Correction Amount Upper Limit Error", type: "error", remedy: "The result from the XY tracking movement has exceeded the tolerance limit.\n\nIf this was not intended, change the tolerance limit by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then enter an adequate value in the upper limit of [Measuring Range Settings]." },
+            { code: "E116", name: "Position Correction Correlating Value Drop Error", type: "error", remedy: "The correlation value has fallen below the lower limit as a result of the tracking operation.\n\nCheck the target position and surface condition, or check that the lower limit of the correlation value is set appropriately." },
+            { code: "E118", name: "Z Coordinate Correction Amount Stability Drop Error", type: "error", remedy: "The stability has dropped below 50 as a result of tracking.\n\nCheck the work position (measurement position) and surface condition.\n\nOtherwise, perform automatic adjustment of the Z tracking setting, and check that measurement is performed with highly reliable coordinates." },
+            { code: "E119", name: "Position adjustment measurement failure error", type: "error", remedy: "Position adjustment failed. If this was not intended, change the tracking settings by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then edit an objective setting of XY tracing." },
+            { code: "E120", name: "Position correction process fail error", type: "error", remedy: "When 'Search successful' is set as the failure condition for XY tracking, the XY tracking process will be considered a failure even when the search succeeds.\n\nIf this is not the intended result, the XY tracking settings are incorrect and must be changed." },
+            { code: "E121", name: "2-point correction search result invalid error", type: "error", remedy: "The search is successful in the XY tracking with 2-point correction settings, but the relationship between the 2 points' detected position is invalid. That positional relationship has changed significantly since it was initially set.\n\nIf this is not the intended result, the XY tracking settings are incorrect and must be changed." },
+            { code: "E122", name: "Pre-marking 2D code reader process fail error", type: "error", remedy: "The pre-marking 2D code reader process has failed.\n\nIf this is not the intended result, the 2D code reader settings are incorrect and must be changed." },
+            { code: "E132", name: "Voltage Drop Error", type: "error", remedy: "The AC power voltage may be unstable.\n\nInstall a UPS and feed AC power from the UPS to the device.\n\nNoise may be affecting the device if the error occurs in a sporadic manner." },
+            { code: "E137", name: "System Error 27", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E138", name: "System Error 28", type: "error", remedy: "This error tends to occur when marking on a highly reflective target.\n\nReduce the marking output power, or avoid marking near the point of origin so that the laser beam reflected from the target does not enter the head unit." },
+            { code: "E139", name: "System Error 29", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E141", name: "System Error 31", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E142", name: "System Error 32", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E143", name: "System Error 33", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E144", name: "Laser Reflection error", type: "error", remedy: "This error tends to occur when marking on a highly reflective target.\n\nReduce the marking output power, or avoid printing near the point of origin so that the laser beam reflected from the target does not enter the head unit." },
+            { code: "E150", name: "Image processing CPU startup error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E151", name: "Image processing communication error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E152", name: "XY tracking memory full error", type: "error", remedy: "Follow the procedure described below to disable the [Job pre-expansion] function or narrow down the target jobs.\n\nSelect [Settings] - [Controller] - [Expansion Processing] in the ribbon menu, and then modify [Job pre-expansion]." },
+            { code: "E153", name: "XY tracking data error", type: "error", remedy: "XY tracking data expansion failed.\n\nTransfer the job from the PC to the controller again." },
+            { code: "E160", name: "User information reading failure error", type: "error", remedy: "Reset the user management settings." },
+            { code: "E202", name: "Controller top fan error", type: "error", remedy: "Check if there are any foreign materials on the fan, then restart the device." },
+            { code: "E203", name: "Controller bottom fan error", type: "error", remedy: "Check if there are any foreign materials on the fan, then restart the device." },
+            { code: "E204", name: "Head control cable unconnected error", type: "error", remedy: "Check the cable connection between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nA repair is needed if there is no problem with the cable." },
+            { code: "E205", name: "Head Power Cable Unconnected Error", type: "error", remedy: "Check the cable connection between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nA repair is needed if there is no problem with the cable." },
+            { code: "E206", name: "Head unit fan lock error", type: "error", remedy: "Check if there are any foreign materials on the fan, then restart the device." },
+            { code: "E220", name: "System Error 34", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E221", name: "System Error 35", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E222", name: "System Error 36", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E224", name: "System Error 38", type: "error", remedy: "A repair is needed if the problem persists after a restart.\n\nNoise may be affecting the device if the error occurs in a sporadic manner." },
+            { code: "E225", name: "System Error 39", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E226", name: "System Error 40", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E227", name: "System Error 41", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E228", name: "System Error 42", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E229", name: "System Error 43", type: "error", remedy: "Upgrade the version of the head unit and controller by following the procedure below.\n\nSelect [Monitoring] - [Version Information] in the ribbon menu, and then run [Version Upgrade]." },
+            { code: "E230", name: "System Error 44", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E231", name: "System Error 45", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E232", name: "System Error 46", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E233", name: "System Error 47", type: "error", remedy: "A repair is needed if the problem persists after a restart.\n\nNoise may be affecting the device if this error occurs." },
+            { code: "E234", name: "LD temperature unadjustable error", type: "error", remedy: "Check if the ambient temperature is changing rapidly.\n\nA repair is needed if the problem persists even when the ambient temperature is stable." },
+            { code: "E236", name: "System Error 50", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E237", name: "System Error 51", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E238", name: "System Error 52", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E239", name: "System Error 53", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E240", name: "System Error 60", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E250", name: "System Error 70", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E252", name: "Scanner error 3", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nA repair is needed if there is no problem with the cable." },
+            { code: "E253", name: "Scanner error 4", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nA repair is needed if there is no problem with the cable." },
+            { code: "E254", name: "Scanner error 5", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nA repair is needed if there is no problem with the cable." },
+            { code: "E255", name: "Scanner error 6", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nA repair is needed if there is no problem with the cable." },
+            { code: "E256", name: "System Error 72", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E257", name: "Controller Power Error", type: "error", remedy: "A repair is needed if the problem persists after a restart.\n\nThis error can occur when there is incorrect wiring on the terminal block.\n\nCheck if the same error occurs even after disconnecting all terminal blocks." },
+            { code: "E258", name: "Voltage Drop Error", type: "error", remedy: "The AC power voltage may be unstable.\n\nInstall a UPS and feed AC power from the UPS to the device." },
+            { code: "E259", name: "24V Voltage Drop Error", type: "error", remedy: "The power consumption of the connected device may be exceeding 0.3A.\n\nCheck if the same error occurs even after disconnecting the external device from the service power supply.\n\nAlso, this error can occur when there is incorrect wiring on the terminal block.\n\nCheck if the same error occurs even after disconnecting all terminal blocks." },
+            { code: "E260", name: "Voltage Drop Error 2", type: "error", remedy: "The AC power voltage may be unstable.\n\nInstall a UPS and feed AC power from the UPS to the device." },
+            { code: "E261", name: "System Error 73", type: "error", remedy: "The AC power voltage may be unstable, or the laser marker may be malfunctioning.\n\nInstall a UPS and feed AC power from the UPS to the laser marker." },
+            { code: "E262", name: "System Error 74", type: "error", remedy: "The AC power voltage may be unstable, or the laser marker may be malfunctioning.\n\nInstall a UPS and feed AC power from the UPS to the laser marker." },
+            { code: "E263", name: "System Error 75", type: "error", remedy: "The AC power voltage may be unstable, or the laser marker may be malfunctioning.\n\nInstall a UPS and feed AC power from the UPS to the laser marker." },
+            { code: "E264", name: "Scanner Error 7", type: "error", remedy: "The AC power voltage may be unstable, or the laser marker may be malfunctioning.\n\nInstall a UPS and feed AC power from the UPS to the laser marker." },
+            { code: "E265", name: "Power supply error of the head", type: "error", remedy: "The AC power voltage may be unstable, or the laser marker may be malfunctioning.\n\nThe AC power voltage may be unstable. Install a UPS and feed AC power from the UPS to the device." },
+            { code: "E266", name: "System Error 76", type: "error", remedy: "Switch off the power, disconnect and reconnect the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problems are found.\n\nA repair may be needed if there are no problems with the cable." },
+            { code: "E267", name: "Scanner Error 77", type: "error", remedy: "Switch off the power, disconnect and reconnect the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problems are found.\n\nA repair may be needed if there are no problems with the cable." },
+            { code: "E268", name: "Scanner Error 78", type: "error", remedy: "Switch off the power, disconnect and reconnect the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problems are found.\n\nA repair may be needed if there are no problems with the cable." },
+            { code: "E269", name: "Scanner Error 79", type: "error", remedy: "Switch off the power, disconnect and reconnect the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problems are found.\n\nA repair may be needed if there are no problems with the cable." },
+            { code: "E270", name: "Controller high temperature error", type: "error", remedy: "Check if the controller filter is clogged or dirty.\n\nIf no problem is found with the filter, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E271", name: "Controller low temperature error", type: "error", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E273", name: "Laser Safety Module Status Error", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable or if the laser safety module is correctly connected. Replace the cable or connect the laser safety module correctly if any problem is found.\n\nIf the problem persists after a restart, the laser safety module needs to be replaced." },
+            { code: "E274", name: "Head Unit High Temperature Error (Internal Displacement Sensor)", type: "error", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E275", name: "Head Unit Low Temperature Error (Internal Displacement Sensor)", type: "error", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E280", name: "Head unit high temperature error (plate)", type: "error", remedy: "Check if the head unit fan is clogged or obstructed.\n\nIf no problem is found with the fan, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E281", name: "Head unit low temperature error (plate)", type: "error", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E282", name: "Head unit high temperature error (board)", type: "error", remedy: "Check if the head unit fan is clogged or obstructed.\n\nIf no problem is found with the fan, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E283", name: "Head unit low temperature error (board)", type: "error", remedy: "Please check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E284", name: "Scanner high temperature error", type: "error", remedy: "Check if the head unit fan is clogged or obstructed.\n\nIf no problem is found with the fan, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E285", name: "Scanner low-temperature error", type: "error", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E287", name: "Head unit high temperature error (top)", type: "error", remedy: "Check if the head unit fan is clogged or obstructed.\n\nIf no problem is found with the fan, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E288", name: "Head unit low temperature error (top)", type: "error", remedy: "Please check whether the ambient temperature is within the specification range.\n\nIf the error occurs when the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "E289", name: "Laser Safety Module Connection Error", type: "error", remedy: "Laser safety module or shorting connector module is not connected." },
+            { code: "E290", name: "Contactor status error", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the recovery fails, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nA repair is needed if there is no problem with the cable." },
+            { code: "E291", name: "Head unit Comm error 2", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the problem reoccurs, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nNoise may be affecting the device if there is no problem in the cable and the error occurs in a sporadic manner." },
+            { code: "E292", name: "SSR status error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E293", name: "Interlock status error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E294", name: "System Error 80", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E295", name: "SD card setting file error", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E296", name: "System Error 81", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E297", name: "System Error 82", type: "error", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "E298", name: "Head unit Comm error 3", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, and then restart the device.\n\nIf the problem reoccurs, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nNoise may be affecting the device if there is no problem in the cable and the error occurs in a sporadic manner." },
+            { code: "E299", name: "Head unit Comm error 4", type: "error", remedy: "Switch off the power, reseat the cable between the head unit and controller, and then restart the device.\n\nIf the problem reoccurs, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nNoise may be affecting the device if there is no problem in the cable and the error occurs in a sporadic manner." },
+
+            // Warning Messages (W-codes)
+            { code: "W001", name: "Laser temperature warning", type: "warning", remedy: "Check if the head unit filter is clogged or dirty.\n\nIf no problem is found with the filter, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W101", name: "Head unit fan warning", type: "warning", remedy: "Check if the head unit fan is clogged or obstructed." },
+            { code: "W102", name: "USB flash drive access failure warning", type: "warning", remedy: "Format the USB flash drive in FAT** format and try again.\n\nUse a different USB flash drive if the error reoccurs." },
+            { code: "W103", name: "Inter-CPU communication timeout warning", type: "warning", remedy: "Noise may be affecting the device if this error occurs." },
+            { code: "W105", name: "Laser control board parameter warning", type: "warning", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "W106", name: "Head unit board parameter warning", type: "warning", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "W107", name: "Controller board parameter warning", type: "warning", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "W110", name: "Laser power output decay alarm", type: "warning", remedy: "A repair is likely needed if there is a problem with the marking quality.\n\nIf the laser output is low, you may continue using it in this state.\n\nA repair is needed if the problem is affecting the marking quality." },
+            { code: "W111", name: "Insufficient marking energy alarm", type: "warning", remedy: "If this was not intended, change the threshold setting by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Monitor] - [Marking Energy] in the ribbon menu, and correct the threshold." },
+            { code: "W112", name: "Excess marking energy Alarm", type: "warning", remedy: "If this was not intended, change the threshold setting by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Monitor] - [Marking Energy] in the ribbon menu, and correct the threshold." },
+            { code: "W113", name: "Power monitor sensor warning", type: "warning", remedy: "A repair is needed if the problem persists after a restart." },
+            { code: "W114", name: "Laser power calibration warning", type: "warning", remedy: "If you cannot perform marking with laser power at 100%, the unit needs to be repaired." },
+            { code: "W125", name: "Voltage Drop Warning", type: "warning", remedy: "The AC power voltage may be unstable.\n\nInstall a UPS and feed AC power from the UPS to the device.\n\nNoise may be affecting the device if the error occurs in a sporadic manner." },
+            { code: "W126", name: "Voltage Drop Warning 2", type: "warning", remedy: "The AC power voltage may be unstable.\n\nInstall a UPS and feed AC power from the UPS to the device.\n\nNoise may be affecting the device if the error occurs in a sporadic manner." },
+            { code: "W134", name: "Pre-marking 2D code reader process fail warning", type: "warning", remedy: "The pre-marking 2D code reader process has failed.\n\nIf this is not the intended result, the 2D code reader settings are incorrect and must be changed." },
+            { code: "W135", name: "Pre-marking 2D code reader time out warning", type: "warning", remedy: "The pre-marking 2D code reader process has timed out without any successful reading attempt.\n\nCheck the settings of the 2D code reader." },
+            { code: "W150", name: "Z Coordinate Upper Limit Warning", type: "warning", remedy: "If this was not intended, change the setting by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then adjust the measuring range setting of Z tracking." },
+            { code: "W151", name: "Z Coordinate Lower Limit Warning", type: "warning", remedy: "If this was not intended, change the setting by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then adjust the measuring range setting of Z tracking." },
+            { code: "W152", name: "2D code quality drop warning", type: "warning", remedy: "Adjust the marking parameters and/or lighting conditions." },
+            { code: "W153", name: "Position Correction Amount Upper Limit Warning", type: "warning", remedy: "The result from the XY tracking movement has exceeded the tolerance limit.\n\nIf this was not intended, change the tolerance limit by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then enter an adequate value in the upper limit of [Measuring Range Settings]." },
+            { code: "W154", name: "Position adjustment correlating value drop warning", type: "warning", remedy: "The correlation value has fallen below the lower limit as a result of XY tracking.\n\nCheck the target position and surface condition, or check that the correlation value lower limit is set appropriately." },
+            { code: "W156", name: "Z Coordinate Stability Drop Warning", type: "warning", remedy: "The stability has dropped below 50 as a result of tracking.\n\nCheck the work position (measurement position) and surface condition.\n\nUse the tracking confirmation function of Marking Builder Plus to check if the stability is low.\n\nOtherwise, perform automatic adjustment of the Z tracking setting, and check that measurement is performed with highly reliable coordinates." },
+            { code: "W157", name: "Z Measurement Failure Warning", type: "warning", remedy: "Position adjustment failed.\n\nIf this was not intended, change the tracking setting by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then edit a target Tracking Settings." },
+            { code: "W158", name: "Position adjustment measurement failure warning", type: "warning", remedy: "Position adjustment failed.\n\nIf this was not intended, change the tracking setting by following the procedure below.\n\nSelect [HOME] - [Work Flow] - [Position Adjustment] in the ribbon menu, and then edit a target Tracking Settings." },
+            { code: "W159", name: "Lens Inspection Failure Warning", type: "warning", remedy: "Check the following:\n\n• Turn the key switch to LASER ON.\n\n• Turn ON the distance laser enable input." },
+            { code: "W160", name: "Controller high temperature warning", type: "warning", remedy: "Check if the controller filter is clogged or dirty.\n\nIf no problem is found with the filter, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W161", name: "Controller low temperature warning", type: "warning", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the error occurs when the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W162", name: "LD high-temperature warning", type: "warning", remedy: "Check if the controller filter is clogged or dirty.\n\nIf no problem is found with the filter, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W163", name: "LD low-temperature warning", type: "warning", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W170", name: "Head unit high temperature warning (plate)", type: "warning", remedy: "Check if the head unit fan is clogged or obstructed.\n\nIf no problem is found with the fan, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W171", name: "Head unit low temperature warning (plate)", type: "warning", remedy: "Please check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W172", name: "Head unit high temperature warning (board)", type: "warning", remedy: "Check if the head unit fan is clogged or obstructed.\n\nIf no problem is found with the fan, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W173", name: "Head unit low temperature warning (board)", type: "warning", remedy: "Please check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W174", name: "Scanner high temperature warning", type: "warning", remedy: "Check if the head unit fan is clogged or obstructed.\n\nIf no problem is found with the fan, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W175", name: "Scanner low-temperature warning", type: "warning", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W176", name: "Head unit high temperature warning (top)", type: "warning", remedy: "Check if the head unit fan is clogged or obstructed.\n\nIf no problem is found with the fan, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W177", name: "Head unit low temperature warning (top)", type: "warning", remedy: "Please check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W178", name: "Head Unit Low Temperature Warning (Internal Displacement Sensor)", type: "warning", remedy: "Check if the head unit filter is clogged or dirty.\n\nIf no problem is found with the filter, reduce the ambient temperature or install a spot cooler.\n\nIf the ambient temperature is not high, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W179", name: "Head Unit Low Temperature Warning (Internal Displacement Sensor)", type: "warning", remedy: "Check whether the ambient temperature is within the specification range.\n\nIf the ambient temperature is not low, the temperature sensor is very likely defective and needs to be repaired." },
+            { code: "W181", name: "Camera Correction Warning 1", type: "warning", remedy: "A repair is needed if the problem persists after a restart.\n\nContact your nearest KEYENCE office for repair." },
+            { code: "W182", name: "Head Unit Communication Warning", type: "warning", remedy: "A communication error has occurred in the controller.\n\nSwitch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the problem reoccurs, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nNoise may be affecting the device if there is no problem in the cable and the error occurs in a sporadic manner." },
+            { code: "W183", name: "Image Processing Communication Warning", type: "warning", remedy: "A communication error has occurred in the controller.\n\nSwitch off the power, reseat the cable between the head unit and controller, then restart the device.\n\nIf the problem reoccurs, check if there are broken pins or breaks in the cable. Replace the cable if any problem is found.\n\nNoise may be affecting the device if there is no problem in the cable and the error occurs in a sporadic manner." },
+            { code: "W184", name: "Camera Correction Warning 2", type: "warning", remedy: "A repair is needed if the problem persists after a restart.\n\nContact your nearest KEYENCE office for repair." },
+            { code: "W190", name: "Z tracking calibration error", type: "warning", remedy: "Z tracking calibration failed.\n\nIf the error occurs after performing again, contact your nearest KEYENCE office for repair." },
+            { code: "W191", name: "Lens cleaning warning", type: "warning", remedy: "The lens inspection result has fallen below the cleaning warning threshold.\n\nClean the lens." },
+            { code: "W192", name: "Z tracking calibration execution warning", type: "warning", remedy: "The head temperature has changed by 5 degrees or more without performing the Z tracking calibration.\n\nIn the Z tracking calibration settings, set the calibration to be performed Pre/Post marking or when the temperature changes.\n\nOtherwise, perform manual calibration of Z tracking using communication commands." },
+            { code: "W193", name: "Position correction process fail warning", type: "warning", remedy: "When 'Search successful' is set as the failure condition for XY tracking, the XY tracking process will be considered a failure even when the search succeeds.\n\nIf this is not the intended result, the XY tracking settings are incorrect and must be changed." },
+            { code: "W194", name: "2-point correction search result fraud warning", type: "warning", remedy: "The search is successful in the XY tracking with 2-point correction settings, but the relationship between the 2 points' detected position is invalid. That positional relationship has changed significantly since it was initially set.\n\nIf this is not the intended result, the XY tracking settings are incorrect and must be changed." },
+            { code: "W200", name: "Log Saving Unavailability Warning (Internal Memory)", type: "warning", remedy: "An error occurred in the logging function, and the log data could not be saved.\n\nCheck the connection status to the save destination and the capacity of the save destination." },
+            { code: "W201", name: "Log Saving Unavailability Warning (External Memory)", type: "warning", remedy: "An error occurred in the logging function, and the log data could not be saved.\n\nCheck the connection status to the save destination and the capacity of the save destination." },
+            { code: "W202", name: "Log Saving Unavailability Warning (FTP Server)", type: "warning", remedy: "An error occurred in the logging function, and the log data could not be saved.\n\nCheck the connection status to the save destination and the capacity of the save destination." },
+            { code: "W203", name: "Log Data Access Warning", type: "warning", remedy: "FTP server access failed.\n\nCheck both the laser marker and FTP server settings.\n\nSelect [Settings] - [Controller] - [Logging Setting] in the ribbon menu, and then check the FTP settings." },
+            { code: "W204", name: "Log Saving Buffer Over Warning", type: "warning", remedy: "Some logs could not be saved because the log data to be saved exceeded the capacity of the buffer.\n\nSelect [Settings] - [Controller] - [Logging settings] in the ribbon menu, then use the options in this menu to not save unnecessary history. Or, shorten the storage cycle." },
+            { code: "W205", name: "Log Data Deleting Failure Warning", type: "warning", remedy: "Failed to delete log data due to insufficient internal memory capacity.\n\nDelete unnecessary logos, custom characters, and system font data." },
+            { code: "W206", name: "FTP Server Connection Warning", type: "warning", remedy: "An error was returned from the FTP client API when connecting to the FTP server or transferring data.\n\nCheck the status of the FTP server." },
+            { code: "W207", name: "External Memory Recognition Warning", type: "warning", remedy: "The controller could not recognize the USB memory.\n\nCheck the status of the USB memory." },
+            { code: "W208", name: "User information reading failure warning", type: "warning", remedy: "The reading of the user information file failed, so data was read from the backup file." },
+            { code: "W209", name: "Log Saving Unavailability Warning (Internal Memory) 2", type: "warning", remedy: "An error occurred in the logging function, and the log data could not be saved.\n\nA repair is needed if the problem persists after a restart.\n\nContact your nearest KEYENCE office for repair." },
+            { code: "W210", name: "OPC UA server start failure", type: "warning", remedy: "The OPC UA server failed to start. Check items such as the certificate for the security policy in use and the expiration of the server certificate." },
+            { code: "W211", name: "OPC UA server certificate expired", type: "warning", remedy: "This error occurs when the OPC UA server certificate has expired. Update the certificate. The server will start if the corresponding security policy is not in use." },
+
+            // Terminal Errors (T-codes)
+            { code: "T000", name: "Remote interlock in use", type: "terminal", remedy: "Reset the error by turning ON remote interlock input A/B." },
+            { code: "T001", name: "Controlling Shutter", type: "terminal", remedy: "Turn ON shutter control input A/B." },
+            { code: "T002", name: "Trigger lock in use", type: "terminal", remedy: "Please check conditions and resolve:\n\n• The trigger inhibit input of the terminal block is ON\n\n• [Cancel Marking] is selected for test marking in the console or Marking Builder Plus." },
+            { code: "T003", name: "Laser Disabled", type: "terminal", remedy: "Turn off the marking laser disable input.\n\nYou can change the normally open and normally closed settings by following the procedure below.\n\nSelect [Settings] - [Controller] - [I/O Setting] in the ribbon menu, and then correct the value in [Invert input function]." },
+            { code: "T004", name: "Operation Mode Disabled", type: "terminal", remedy: "Turn off the operation disable input.\n\nYou can change the normally open and normally closed settings by following the procedure below.\n\nSelect [Settings] - [Controller] - [I/O Setting] in the ribbon menu, and then correct the value in [Invert input function]." },
+            { code: "T005", name: "Distance pointer ON", type: "terminal", remedy: "Turn off the distance pointer." },
+            { code: "T006", name: "Unexcited laser state", type: "terminal", remedy: "Please check the following:\n\n• Turn the key switch to LASER ON.\n\n• Turn ON the laser excitation input." },
+            { code: "T007", name: "Adjusting LD temperature", type: "terminal", remedy: "Please wait until the operation is complete." },
+            { code: "T008", name: "Warming up", type: "terminal", remedy: "Please wait until the operation is complete." },
+            { code: "T009", name: "Auto-calibrating laser power", type: "terminal", remedy: "Please wait until the operation is complete." },
+            { code: "T012", name: "Communication shutter control in progress", type: "terminal", remedy: "Open the shutter using the ActiveX command." },
+            { code: "T013", name: "Upgrading the version", type: "terminal", remedy: "Please wait until version upgrade is complete." },
+            { code: "T015", name: "Laser Safety Module OFF Status", type: "terminal", remedy: "Turn ON SAFETY_IN input A/B." },
+            { code: "T016", name: "Lens Inspection In Progress", type: "terminal", remedy: "Please wait until the lens inspection completes." },
+            { code: "T017", name: "Distance laser disabled", type: "terminal", remedy: "Distance laser enable input is off or the distance laser stop input bit is ON in Industrial Ethernet." },
+
+            // Software Errors (S-codes)
+            { code: "S000", name: "Job Incorrect Error", type: "software", remedy: "Check whether the parameter is within the input range.\n\nCreate the job again if no corrupt data can be found." },
+            { code: "S001", name: "Job Memory Full Error", type: "software", remedy: "Remove unwanted jobs from the controller." },
+            { code: "S002", name: "Built-in memory card full error", type: "software", remedy: "Remove unwanted logos, fonts, and Z-MAP data from the controller." },
+            { code: "S003", name: "USB flash drive full error", type: "software", remedy: "Remove unwanted data from the USB flash drive." },
+            { code: "S004", name: "USB flash drive not inserted error", type: "software", remedy: "Perform the operation after inserting a USB flash drive." },
+            { code: "S005", name: "USB flash drive cannot be recognized error", type: "software", remedy: "Format the USB flash drive in FAT** format and try again.\n\nTry using a different USB flash drive if the error reoccurs." },
+            { code: "S006", name: "Priority error", type: "software", remedy: "The console and/or external communication has acquired communication priority.\n\nCheck if the other devices are in test marking or finder mode, check if another device is controlling the laser marker, and perform the operation after exiting from these modes." },
+            { code: "S008", name: "No-File Error", type: "software", remedy: "Perform the communication again using an existing file as the target." },
+            { code: "S009", name: "Busy Error", type: "software", remedy: "Perform the operation when the laser is in the READY state." },
+            { code: "S010", name: "No marking block error", type: "software", remedy: "Set the marking flag to ON for one or more target blocks (Matrix)." },
+            { code: "S011", name: "Logos/custom characters over error", type: "software", remedy: "Reduce the number of files." },
+            { code: "S012", name: "Scan speed optimization error", type: "software", remedy: "Reduce the line speed or adjust the character size, etc." },
+            { code: "S013", name: "Scan Optimize unexecutable error", type: "software", remedy: "Set the quality level of all blocks to [Customize]." },
+            { code: "S014", name: "Job Operation During Execution Error", type: "software", remedy: "The currently running job cannot be deleted." },
+            { code: "S015", name: "Logo/custom character file operation error", type: "software", remedy: "First remove the job that is using the logo or custom character you wish to delete." },
+            { code: "S016", name: "Acquiring Mastership Error", type: "software", remedy: "Start marking after the device has gone into READY status or controlling status." },
+            { code: "S017", name: "Fixed point marking parameter error", type: "software", remedy: "Modify the job to make sure that the fixed point and 3D shape blocks are not mixed." },
+            { code: "S018", name: "Barcode/2D code illegal setting error", type: "software", remedy: "Please enter an encoding string." },
+            { code: "S019", name: "All-setup restoration error", type: "software", remedy: "Make sure to use the backup data from the same model." },
+            { code: "S020", name: "Data Length Error", type: "software", remedy: "Noise may be affecting the external communication cable if the error occurs in a sporadic manner." },
+            { code: "S021", name: "Job Number Unregistered Error", type: "software", remedy: "Transfer the job to the controller by following the procedure below.\n\nSelect [Settings] - [File Operations] in the ribbon menu, and then Transfer the job settings to the controller." },
+            { code: "S022", name: "Block No. Not Registered error", type: "software", remedy: "Transfer the job to the controller by following the procedure below.\n\nSelect [Settings] - [File Operations] in the ribbon menu, and then Transfer the job settings to the controller." },
+            { code: "S023", name: "Status error", type: "software", remedy: "Reset the error and try marking again." },
+            { code: "S024", name: "Illegal Command Error", type: "software", remedy: "Acquire the communication history and check the parameter input range and block type." },
+            { code: "S025", name: "Checksum Error", type: "software", remedy: "Check if the checksum settings for the laser marker and external devices (PLC, etc.) are both ON.\n\nIf there is no problem in the above, check if the checksum calculation method of the PLC is set to horizontal parity (Exclusive OR).\n\nNoise may be affecting the external communication cable if the error occurs in a sporadic manner." },
+            { code: "S026", name: "Format error", type: "software", remedy: "Incorrect format in the communication command. Acquire the communication history and check the command details.\n\nIf a comma (,) is used in the string, change it to '%044A' (special code representing a comma) before sending it." },
+            { code: "S027", name: "Command Unrecognizable Error", type: "software", remedy: "Invalid communication command. Acquire the communication history and check the command details." },
+            { code: "S028", name: "Response data length error", type: "software", remedy: "Modify the request command to reduce the response data length." },
+            { code: "S029", name: "Mark data request error", type: "software", remedy: "Send the command after marking has completed." },
+            { code: "S030", name: "Group number unregistered error", type: "software", remedy: "Group the blocks in the job using Marking Builder Plus.\n\nYou can group blocks by following the procedure below.\n\nSelect and right-click on a block to open the context menu, and then select [Grouping]." },
+            { code: "S031", name: "No Program Error (2D code reader)", type: "software", remedy: "Activate the 2D code reader function in Marking Builder Plus." },
+            { code: "S032", name: "No Program Error (Marking confirmation function)", type: "software", remedy: "Activate the marking confirmation function in Marking Builder Plus." },
+            { code: "S033", name: "No Program Error (3-Axis Tracking)", type: "software", remedy: "Activate the XY tracking or Z tracking function in Marking Builder Plus." },
+            { code: "S040", name: "Operation Limitation Error (2D Code Reader)", type: "software", remedy: "Delete the job that uses the inactivated function or activate the target function." },
+            { code: "S041", name: "Operation Limitation Error (3D Marking)", type: "software", remedy: "Delete the job that uses the inactivated function or activate the target function." },
+            { code: "S042", name: "Operation Limitation Error (Z Tracking)", type: "software", remedy: "Delete the job that uses the inactivated function or activate the target function." },
+            { code: "S043", name: "Operation Limitation Error (XY Tracking)", type: "software", remedy: "Delete the job that uses the inactivated function or activate the target function." },
+            { code: "S050", name: "Quick change of character setup error", type: "software", remedy: "Check the following when using the high speed character edit command.\n\n• Check if the block you wish to change is subject to high speed string editing.\n\n• Check that the string to be sent is registered as the character type that supports high speed string editing." },
+            { code: "S051", name: "Sample Marking Unexecutable Error", type: "software", remedy: "Commence sample marking in READY state." },
+            { code: "S052", name: "Laser inspection unexecutable error", type: "software", remedy: "Commence inspection laser in READY state." },
+            { code: "S060", name: "Block type incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S061", name: "Block assignment incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S062", name: "Character size incorrect setting error", type: "software", remedy: "Modify the blocks whose character aspect ratio is greater than 1:5 or 5:1." },
+            { code: "S063", name: "Character assignment incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S064", name: "Character advanced incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S065", name: "Marking condition incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S066", name: "Barcode/2D code illegal setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S067", name: "Continuous marking incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S068", name: "Movement/marking direction incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S069", name: "Job Program Incorrect Error", type: "software", remedy: "Recreate the job." },
+            { code: "S070", name: "Matrix information incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S071", name: "Matrix cell information incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S072", name: "Character string incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S073", name: "Individual counter incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S074", name: "Common counter incorrect setting error", type: "software", remedy: "Reconfigure the common counter settings by following the procedure below.\n\nYou can configure by selecting [Settings] - [Common Data] in the ribbon menu, followed by [Common Counter]." },
+            { code: "S075", name: "Encoding information incorrect setting error", type: "software", remedy: "Reconfigure the encoding setting.\n\nYou can configure by selecting [Settings] - [Common Data] in the ribbon menu, followed by [Encoding]." },
+            { code: "S076", name: "System information incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S077", name: "Font replacement information incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S078", name: "Font scaling information incorrect setting error", type: "software", remedy: "Reconfigure the character scaling settings.\n\nYou can configure by selecting [Settings] - [Common Data] in the ribbon menu, followed by [Character scaling]." },
+            { code: "S080", name: "Logo/custom character buffer information incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S083", name: "3D information incorrect setting error", type: "software", remedy: "Recreate the job." },
+            { code: "S084", name: "Operation limitation error", type: "software", remedy: "A job loaded on the controller is using a function that has not been activated (e.g. 2D code reader).\n\nDelete the job that is using the unactivated function, or activate the necessary function." },
+            { code: "S085", name: "Data Version Error", type: "software", remedy: "The loaded job has been created in a higher version than that of the connected Marking Builder Plus.\n\nUpgrade Marking Builder Plus to the latest version, or downgrade the version of the loaded job." },
+            { code: "S086", name: "Wobble Incorrect Setting Error", type: "software", remedy: "Check if the marking line width, overlap rate, and scan speed settings are within range." },
+            { code: "S087", name: "2D code reading error", type: "software", remedy: "Modify the job so that code reading is possible in test marking, then run the job again." },
+            { code: "S088", name: "Working distance measurement error", type: "software", remedy: "Height measurement may not be possible in the following cases:\n\n• Distance measuring light cannot be detected correctly because of the surface condition of the target." },
+            { code: "S089", name: "Working distance measurement limitation error", type: "software", remedy: "Measure the work distance when the laser is in the READY state." },
+            { code: "S090", name: "Registered barcode error", type: "software", remedy: "Change the barcode verification string." },
+            { code: "S091", name: "Barcode/2D code link setting error", type: "software", remedy: "Please check the following:\n\n• Check if the 2D code overprinting setting is enabled for the target block.\n\n• Check if the target overprinting No. exists." },
+            { code: "S092", name: "Barcode illegal registration state error", type: "software", remedy: "Configure it in either Marking Builder Plus or the console." },
+            { code: "S093", name: "Marking Confirmation Function Error", type: "software", remedy: "Check if the marked data exisits within the field of view of the confirmation coordinates." },
+            { code: "S094", name: "TrueType font file size error", type: "software", remedy: "Reduce the number of TrueType font types being used." },
+            { code: "S095", name: "Model limitation error", type: "software", remedy: "Cannot be used." },
+            { code: "S096", name: "Open priority error", type: "software", remedy: "Restart the device." },
+            { code: "S097", name: "File Access Error", type: "software", remedy: "File may be read-only.\n\nCheck the file attribute and try again." },
+            { code: "S100", name: "Illegal Capturing Condition Error", type: "software", remedy: "The FNC specifier of the communication command is specified other than 00 (marking confirmation function) and 01 (2D code reader).\n\nSend the command using the correct FNC specifier number." },
+            { code: "S101", name: "Window maintenance cancelled", type: "software", remedy: "Window maintenance started by a communication command was cancelled." },
+            { code: "S102", name: "Z distance measuring failure", type: "software", remedy: "Z coordinate acquisition performed by communication command failed." },
+            { code: "S103", name: "Tracking No. Registration Error", type: "software", remedy: "Review the requesting number." },
+            { code: "S104", name: "Tracking Result Request Error", type: "software", remedy: "Request the result after marking." },
+            { code: "S105", name: "Logging Capture Result Request Error", type: "software", remedy: "Request the result after marking." },
+            { code: "S106", name: "Workflow Result Request Error", type: "software", remedy: "Request the result after marking." },
+            { code: "S107", name: "Cell number specification error", type: "software", remedy: "The specified cell number does not exist. Specify one that does." },
+            { code: "S108", name: "Distance laser not excited error", type: "software", remedy: "The lens inspection start command was sent while the distance laser was not excited. Send this command after exciting the laser." },
+            { code: "S109", name: "Capturing Condition Auto Adjustment Error", type: "software", remedy: "If an error occurs in the 'Capturing condition auto adjustment' of the 2D code reader, try again.\n\nIf an error occurs in the 'Brightness and Magnification Adjustment' of the XY tracking, try again." },
+            { code: "S110", name: "No Log Data", type: "software", remedy: "Execute after saving log data." },
+            { code: "S111", name: "Routing table full error", type: "software", remedy: "The routing table is full. The maximum number of paths that can be registered in this table is four.\n\nDelete registered paths." },
+            { code: "S112", name: "User management function disable error", type: "software", remedy: "The user management function is disabled." },
+            { code: "S113", name: "Simultaneous login exceeded error", type: "software", remedy: "The number of allowable simultaneous logins (four) was exceeded. Wait for another user to log out before logging in." },
+            { code: "S114", name: "User authentication failure error", type: "software", remedy: "User authentication failed. Make sure the password is correct." },
+            { code: "S115", name: "No user information error", type: "software", remedy: "There is no user information. Make sure the user name is correct." },
+            { code: "S116", name: "OPC UA parameter error", type: "software", remedy: "This is the response when an OPC UA method argument is incorrect. Check the arguments." },
+            { code: "S117", name: "OPC UA internal error", type: "software", remedy: "Check the timing of OPC UA processing and the parameters being used. Also make sure the registered certificate and list of expired certificates are correct." },
+            { code: "S118", name: "Unregistered OPC UA session error", type: "software", remedy: "The OPC UA session has not been registered." },
+            { code: "S120", name: "Workflow error", type: "software", remedy: "A workflow process failed. Check the workflow error details" }
+        ];
+
+        // State
+        let currentFilter = 'all';
+        let currentSearchTerm = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            renderResults(errorDatabase);
+            updateStats(errorDatabase.length, errorDatabase.length);
+            setupEventListeners();
+        });
+
+        // Event Listeners
+        function setupEventListeners() {
+            // Search input
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function(e) {
+                currentSearchTerm = e.target.value.toLowerCase().trim();
+                filterAndDisplay();
+            });
+
+            // Filter buttons
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.getAttribute('data-filter');
+                    filterAndDisplay();
+                });
+            });
+        }
+
+        // Filter and Display
+        function filterAndDisplay() {
+            let filteredData = errorDatabase;
+
+            // Apply type filter
+            if (currentFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.type === currentFilter);
+            }
+
+            // Apply search filter
+            if (currentSearchTerm) {
+                filteredData = filteredData.filter(item => {
+                    return item.code.toLowerCase().includes(currentSearchTerm) ||
+                           item.name.toLowerCase().includes(currentSearchTerm) ||
+                           item.remedy.toLowerCase().includes(currentSearchTerm);
+                });
+            }
+
+            renderResults(filteredData);
+            updateStats(errorDatabase.length, filteredData.length);
+        }
+
+        // Render Results
+        function renderResults(data) {
+            const container = document.getElementById('resultsContainer');
+            
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <h3>No results found</h3>
+                        <p>Try adjusting your search or filter criteria</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                const remedyLines = item.remedy.split('\n\n').filter(line => line.trim());
+                let remedyHtml = '';
+                
+                if (remedyLines.length > 1) {
+                    remedyHtml = '<ul>';
+                    remedyLines.forEach(line => {
+                        const highlightedLine = highlightText(line, currentSearchTerm);
+                        if (line.startsWith('•') || line.startsWith('-')) {
+                            remedyHtml += `<li>${highlightedLine.substring(1).trim()}</li>`;
+                        } else {
+                            remedyHtml += `<li>${highlightedLine}</li>`;
+                        }
+                    });
+                    remedyHtml += '</ul>';
+                } else {
+                    remedyHtml = highlightText(item.remedy, currentSearchTerm);
+                }
+
+                html += `
+                    <div class="error-card ${item.type}">
+                        <div class="error-header">
+                            <div class="error-code">${highlightText(item.code, currentSearchTerm)}</div>
+                            <div class="error-name">${highlightText(item.name, currentSearchTerm)}</div>
+                            <span class="error-type ${item.type}">${item.type.toUpperCase()}</span>
+                        </div>
+                        <div class="error-remedy">
+                            <strong>Remedy:</strong><br>
+                            ${remedyHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Highlight Search Terms
+        function highlightText(text, searchTerm) {
+            if (!searchTerm || !text) return text;
+            
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // Update Stats
+        function updateStats(total, showing) {
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('showingCount').textContent = showing;
+        }
+    </script>
+</body>
+</html>
